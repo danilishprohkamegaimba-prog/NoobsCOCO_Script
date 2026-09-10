@@ -54,6 +54,8 @@ local settingBind = nil
 local clickerConn = nil
 local animating = false
 
+local ToggleButtons = {}
+
 local function getTheme() return Themes[Settings.UI.Theme] or Themes.Red end
 
 local function saveSettings()
@@ -78,8 +80,28 @@ local function loadSettings()
 end
 loadSettings()
 
+local function isMouseOverUI()
+    local mousePos = UserInputService:GetMouseLocation()
+    for _, gui in pairs(CoreGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and gui.Name == "NCGUI" then
+            for _, obj in pairs(gui:GetDescendants()) do
+                if obj:IsA("GuiObject") and obj.Visible and obj.Active then
+                    local pos = obj.AbsolutePosition
+                    local size = obj.AbsoluteSize
+                    if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
+                       mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 local function safeClick()
     if uiHovered then return end
+    if isMouseOverUI() then return end
     pcall(function()
         local mousePos = UserInputService:GetMouseLocation()
         VIM:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
@@ -134,7 +156,6 @@ local function rebuildESP()
     end
 end
 
--- GUI
 local gui = Instance.new("ScreenGui", CoreGui)
 gui.Name = "NCGUI"
 gui.ResetOnSpawn = false
@@ -147,7 +168,7 @@ local mainFrame = Instance.new("Frame", gui)
 mainFrame.Size = Settings.UI.LastSize
 mainFrame.Position = Settings.UI.LastPosition
 mainFrame.BackgroundColor3 = theme.Bg
-mainFrame.BackgroundTransparency = 1
+mainFrame.BackgroundTransparency = 1 - (Settings.Misc.UIOpacity / 100)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
@@ -164,11 +185,6 @@ mainStroke.Transparency = 0.5
 mainFrame.MouseEnter:Connect(function() uiHovered = true end)
 mainFrame.MouseLeave:Connect(function() uiHovered = false end)
 
-local function updateUIOpacity()
-    mainFrame.BackgroundTransparency = 1 - (Settings.Misc.UIOpacity / 100)
-end
-
--- Сохранение позиции при перетаскивании
 mainFrame.Changed:Connect(function(prop)
     if prop == "Position" and not animating then
         Settings.UI.LastPosition = mainFrame.Position
@@ -178,7 +194,7 @@ end)
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Size = UDim2.new(1, 0, 0, 52)
 titleBar.BackgroundColor3 = theme.Tab
-titleBar.BackgroundTransparency = 1
+titleBar.BackgroundTransparency = 0
 titleBar.BorderSizePixel = 0
 titleBar.ZIndex = 11
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 14)
@@ -194,7 +210,7 @@ local titleIcon = Instance.new("Frame", titleBar)
 titleIcon.Size = UDim2.new(0, 28, 0, 28)
 titleIcon.Position = UDim2.new(0, 10, 0.5, -14)
 titleIcon.BackgroundColor3 = theme.Accent
-titleIcon.BackgroundTransparency = 1
+titleIcon.BackgroundTransparency = 0.7
 titleIcon.BorderSizePixel = 0
 titleIcon.ZIndex = 12
 Instance.new("UICorner", titleIcon).CornerRadius = UDim.new(0, 7)
@@ -203,7 +219,7 @@ local titleIconText = Instance.new("TextLabel", titleIcon)
 titleIconText.Size = UDim2.new(1, 0, 1, 0)
 titleIconText.BackgroundTransparency = 1
 titleIconText.Text = "😈"
-titleIconText.TextTransparency = 1
+titleIconText.TextTransparency = 0
 titleIconText.Font = Enum.Font.Gotham
 titleIconText.TextSize = 14
 titleIconText.ZIndex = 13
@@ -214,7 +230,7 @@ titleLabel.Position = UDim2.new(0, 46, 0.5, -13)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "NOOBS COCO"
 titleLabel.TextColor3 = theme.TitleText
-titleLabel.TextTransparency = 1
+titleLabel.TextTransparency = 0
 titleLabel.Font = Enum.Font.GothamBlack
 titleLabel.TextSize = 17
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -226,7 +242,7 @@ titleSub.Position = UDim2.new(0, 46, 0.5, 6)
 titleSub.BackgroundTransparency = 1
 titleSub.Text = "Пусть все завидуют"
 titleSub.TextColor3 = theme.Text
-titleSub.TextTransparency = 1
+titleSub.TextTransparency = 0
 titleSub.Font = Enum.Font.Gotham
 titleSub.TextSize = 10
 titleSub.TextXAlignment = Enum.TextXAlignment.Left
@@ -236,11 +252,11 @@ local minimizeBtn = Instance.new("TextButton", titleBar)
 minimizeBtn.Size = UDim2.new(0, 22, 0, 22)
 minimizeBtn.Position = UDim2.new(1, -60, 0.5, -11)
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-minimizeBtn.BackgroundTransparency = 1
+minimizeBtn.BackgroundTransparency = 0.3
 minimizeBtn.BorderSizePixel = 0
 minimizeBtn.Text = "_"
 minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeBtn.TextTransparency = 1
+minimizeBtn.TextTransparency = 0.2
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.TextSize = 11
 minimizeBtn.AutoButtonColor = false
@@ -251,11 +267,11 @@ local closeBtn = Instance.new("TextButton", titleBar)
 closeBtn.Size = UDim2.new(0, 22, 0, 22)
 closeBtn.Position = UDim2.new(1, -32, 0.5, -11)
 closeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-closeBtn.BackgroundTransparency = 1
+closeBtn.BackgroundTransparency = 0.3
 closeBtn.BorderSizePixel = 0
 closeBtn.Text = "×"
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextTransparency = 1
+closeBtn.TextTransparency = 0.2
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 12
 closeBtn.AutoButtonColor = false
@@ -266,7 +282,7 @@ local tabHolder = Instance.new("Frame", mainFrame)
 tabHolder.Size = UDim2.new(1, 0, 0, 40)
 tabHolder.Position = UDim2.new(0, 0, 0, 52)
 tabHolder.BackgroundColor3 = theme.Tab
-tabHolder.BackgroundTransparency = 1
+tabHolder.BackgroundTransparency = 0
 tabHolder.BorderSizePixel = 0
 tabHolder.ZIndex = 11
 Instance.new("UICorner", tabHolder).CornerRadius = UDim.new(0, 12)
@@ -274,7 +290,7 @@ Instance.new("UICorner", tabHolder).CornerRadius = UDim.new(0, 12)
 local tabStroke = Instance.new("UIStroke", tabHolder)
 tabStroke.Thickness = 1
 tabStroke.Color = theme.Accent
-tabStroke.Transparency = 1
+tabStroke.Transparency = 0.6
 
 local Tabs = {}
 local TabContents = {}
@@ -286,11 +302,11 @@ for i, name in ipairs(tabNames) do
     btn.Size = UDim2.new(1/#tabNames, -6, 0, 32)
     btn.Position = UDim2.new((i-1)/#tabNames, 3, 0, 4)
     btn.BackgroundColor3 = name == currentTab and theme.Accent or theme.Elem
-    btn.BackgroundTransparency = 1
+    btn.BackgroundTransparency = 0
     btn.BorderSizePixel = 0
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextTransparency = 1
+    btn.TextTransparency = 0
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 7
     btn.AutoButtonColor = false
@@ -309,7 +325,6 @@ for i, name in ipairs(tabNames) do
     sc.CanvasSize = UDim2.new(0, 0, 0, 700)
     sc.Visible = name == currentTab
     sc.ZIndex = 10
-    sc.BackgroundTransparency = 1
     
     local inner = Instance.new("Frame", sc)
     inner.Size = UDim2.new(1, 0, 0, 700)
@@ -332,77 +347,56 @@ for i, name in ipairs(tabNames) do
     end)
 end
 
--- Все элементы UI для fade-анимации
-local fadeElements = {}
-
-local function registerFade(obj)
-    table.insert(fadeElements, obj)
-    return obj
-end
-
-local function fadeIn()
+-- АНИМАЦИЯ ОТКРЫТИЯ: уезжает слева + проявляется
+local function animateOpen()
+    if animating then return end
     animating = true
-    local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     
-    TweenService:Create(mainFrame, ti, {BackgroundTransparency = 1 - (Settings.Misc.UIOpacity / 100)}):Play()
-    TweenService:Create(titleBar, ti, {BackgroundTransparency = 0}):Play()
-    TweenService:Create(titleIcon, ti, {BackgroundTransparency = 0.7}):Play()
-    TweenService:Create(titleIconText, ti, {TextTransparency = 0}):Play()
-    TweenService:Create(titleLabel, ti, {TextTransparency = 0}):Play()
-    TweenService:Create(titleSub, ti, {TextTransparency = 0}):Play()
-    TweenService:Create(minimizeBtn, ti, {BackgroundTransparency = 0.3, TextTransparency = 0.2}):Play()
-    TweenService:Create(closeBtn, ti, {BackgroundTransparency = 0.3, TextTransparency = 0.2}):Play()
-    TweenService:Create(tabHolder, ti, {BackgroundTransparency = 0}):Play()
-    TweenService:Create(tabStroke, ti, {Transparency = 0.6}):Play()
+    local targetSize = Settings.UI.Minimized and UDim2.new(0, 220, 0, 52) or UDim2.new(0, 380, 0, 550)
+    local targetPos = Settings.UI.LastPosition
     
-    for _, elem in pairs(fadeElements) do
-        pcall(function()
-            if elem:IsA("TextLabel") then
-                TweenService:Create(elem, ti, {TextTransparency = 0}):Play()
-            elseif elem:IsA("Frame") or elem:IsA("TextButton") then
-                TweenService:Create(elem, ti, {BackgroundTransparency = 0}):Play()
-            elseif elem:IsA("UIStroke") then
-                TweenService:Create(elem, ti, {Transparency = 0.5}):Play()
-            end
-        end)
+    mainFrame.Visible = true
+    mainFrame.Size = targetSize
+    mainFrame.Position = UDim2.new(targetPos.X.Scale, targetPos.X.Offset - 250, targetPos.Y.Scale, targetPos.Y.Offset)
+    mainFrame.BackgroundTransparency = 1
+    
+    if not Settings.UI.Minimized then
+        tabHolder.Visible = true
+        titleSub.Visible = true
+        for n, c in pairs(TabContents) do c.scroll.Visible = n == currentTab end
     end
     
-    task.wait(0.3)
+    local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    TweenService:Create(mainFrame, ti, {
+        Position = targetPos,
+        BackgroundTransparency = 1 - (Settings.Misc.UIOpacity / 100)
+    }):Play()
+    
+    task.wait(0.4)
     animating = false
 end
 
-local function fadeOut(callback)
+-- АНИМАЦИЯ ЗАКРЫТИЯ: уезжает влево + растворяется (размер НЕ меняется!)
+local function animateClose()
+    if animating then return end
     animating = true
-    local ti = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
     
-    TweenService:Create(mainFrame, ti, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(titleBar, ti, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(titleIcon, ti, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(titleIconText, ti, {TextTransparency = 1}):Play()
-    TweenService:Create(titleLabel, ti, {TextTransparency = 1}):Play()
-    TweenService:Create(titleSub, ti, {TextTransparency = 1}):Play()
-    TweenService:Create(minimizeBtn, ti, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-    TweenService:Create(closeBtn, ti, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-    TweenService:Create(tabHolder, ti, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(tabStroke, ti, {Transparency = 1}):Play()
+    local currentPos = mainFrame.Position
+    local targetPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset - 250, currentPos.Y.Scale, currentPos.Y.Offset)
     
-    for _, elem in pairs(fadeElements) do
-        pcall(function()
-            if elem:IsA("TextLabel") then
-                TweenService:Create(elem, ti, {TextTransparency = 1}):Play()
-            elseif elem:IsA("Frame") or elem:IsA("TextButton") then
-                TweenService:Create(elem, ti, {BackgroundTransparency = 1}):Play()
-            elseif elem:IsA("UIStroke") then
-                TweenService:Create(elem, ti, {Transparency = 1}):Play()
-            end
-        end)
-    end
+    local ti = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+    TweenService:Create(mainFrame, ti, {
+        Position = targetPos,
+        BackgroundTransparency = 1
+    }):Play()
     
-    task.wait(0.25)
-    if callback then callback() end
+    task.wait(0.35)
+    mainFrame.Visible = false
+    mainFrame.Position = Settings.UI.LastPosition
     animating = false
 end
 
+-- СВОРАЧИВАНИЕ: сначала скрываем содержимое, потом сжимаем
 local function setMinimized()
     if animating then return end
     animating = true
@@ -411,60 +405,55 @@ local function setMinimized()
     for _, c in pairs(TabContents) do c.scroll.Visible = false end
     tabHolder.Visible = false
     titleSub.Visible = false
+    
+    task.wait(0.05)
+    
     titleLabel.Size = UDim2.new(0, 140, 0, 18)
-    
     local targetSize = UDim2.new(0, 220, 0, 52)
-    local targetPos = UDim2.new(mainFrame.Position.X.Scale, mainFrame.Position.X.Offset, mainFrame.Position.Y.Scale, mainFrame.Position.Y.Offset)
     
-    local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+    local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     TweenService:Create(mainFrame, ti, {Size = targetSize}):Play()
     
     Settings.UI.LastSize = targetSize
     saveSettings()
-    
     task.wait(0.3)
     animating = false
 end
 
+-- РАЗВОРАЧИВАНИЕ: сначала сжимаем, потом показываем содержимое
 local function setMaximized()
     if animating then return end
     animating = true
     Settings.UI.Minimized = false
     
-    tabHolder.Visible = true
-    titleSub.Visible = true
     titleLabel.Size = UDim2.new(0, 180, 0, 18)
-    
     local targetSize = UDim2.new(0, 380, 0, 550)
-    local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     TweenService:Create(mainFrame, ti, {Size = targetSize}):Play()
     
     Settings.UI.LastSize = targetSize
     saveSettings()
-    
     task.wait(0.3)
+    
+    tabHolder.Visible = true
+    titleSub.Visible = true
     for n, c in pairs(TabContents) do c.scroll.Visible = n == currentTab end
+    
     animating = false
 end
 
 minimizeBtn.MouseButton1Click:Connect(function()
-    if Settings.UI.Minimized then
-        setMaximized()
-    else
-        setMinimized()
-    end
+    if Settings.UI.Minimized then setMaximized() else setMinimized() end
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
     if animating then return end
     Settings.UI.Hidden = true
     Settings.UI.LastPosition = mainFrame.Position
+    Settings.UI.LastSize = mainFrame.Size
     saveSettings()
-    
-    fadeOut(function()
-        mainFrame.Visible = false
-        mainFrame.BackgroundTransparency = 1 - (Settings.Misc.UIOpacity / 100)
-    end)
+    animateClose()
 end)
 
 local function section(parent, name, y)
@@ -473,36 +462,35 @@ local function section(parent, name, y)
     s.Size = UDim2.new(1, -16, 0, 30)
     s.Position = UDim2.new(0, 8, 0, y)
     s.BackgroundColor3 = t.Elem
+    s.BackgroundTransparency = 0
     s.BorderSizePixel = 0
     s.ZIndex = 11
     Instance.new("UICorner", s).CornerRadius = UDim.new(0, 10)
-    
     local sStroke = Instance.new("UIStroke", s)
     sStroke.Thickness = 1
     sStroke.Color = t.Accent
     sStroke.Transparency = 0.7
-    registerFade(sStroke)
-    
     local l = Instance.new("TextLabel", s)
     l.Size = UDim2.new(1, -24, 1, 0)
     l.Position = UDim2.new(0, 15, 0, 0)
     l.BackgroundTransparency = 1
     l.Text = name
     l.TextColor3 = Color3.fromRGB(255, 255, 255)
+    l.TextTransparency = 0
     l.Font = Enum.Font.GothamBold
     l.TextSize = 11
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.ZIndex = 12
-    registerFade(s)
     return y + 34
 end
 
-local function toggle(parent, text, y, def, cb)
+local function toggle(parent, text, y, def, cb, id)
     local t = getTheme()
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(1, -16, 0, 34)
     f.Position = UDim2.new(0, 8, 0, y)
     f.BackgroundColor3 = t.Elem
+    f.BackgroundTransparency = 0
     f.BorderSizePixel = 0
     f.ZIndex = 11
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
@@ -513,6 +501,7 @@ local function toggle(parent, text, y, def, cb)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = t.Text
+    l.TextTransparency = 0
     l.Font = Enum.Font.Gotham
     l.TextSize = 10
     l.TextXAlignment = Enum.TextXAlignment.Left
@@ -523,24 +512,43 @@ local function toggle(parent, text, y, def, cb)
     b.Position = UDim2.new(1, -54, 0.5, -12)
     b.BorderSizePixel = 0
     b.BackgroundColor3 = def and Color3.fromRGB(40, 200, 40) or t.Btn
+    b.BackgroundTransparency = 0
     b.Text = def and "ON" or "OFF"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextTransparency = 0
     b.Font = Enum.Font.GothamBold
     b.TextSize = 9
     b.AutoButtonColor = false
     b.ZIndex = 12
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
     
-    registerFade(f)
-    
     local state = def
+    
+    if id then
+        ToggleButtons[id] = {
+            button = b,
+            state = state,
+            theme = t
+        }
+    end
+    
     b.MouseButton1Click:Connect(function()
         state = not state
         b.Text = state and "ON" or "OFF"
         b.BackgroundColor3 = state and Color3.fromRGB(40, 200, 40) or t.Btn
+        if id and ToggleButtons[id] then ToggleButtons[id].state = state end
         cb(state) saveSettings()
     end)
     return y + 37
+end
+
+local function updateToggleVisual(id, state)
+    if ToggleButtons[id] then
+        local t = getTheme()
+        ToggleButtons[id].state = state
+        ToggleButtons[id].button.Text = state and "ON" or "OFF"
+        ToggleButtons[id].button.BackgroundColor3 = state and Color3.fromRGB(40, 200, 40) or t.Btn
+    end
 end
 
 local function dropdown(parent, text, y, opts, defIdx, cb)
@@ -549,35 +557,34 @@ local function dropdown(parent, text, y, opts, defIdx, cb)
     f.Size = UDim2.new(1, -16, 0, 58)
     f.Position = UDim2.new(0, 8, 0, y)
     f.BackgroundColor3 = t.Elem
+    f.BackgroundTransparency = 0
     f.BorderSizePixel = 0
     f.ZIndex = 11
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
-    
     local l = Instance.new("TextLabel", f)
     l.Size = UDim2.new(1, -16, 0, 18)
     l.Position = UDim2.new(0, 8, 0, 4)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = t.Text
+    l.TextTransparency = 0
     l.Font = Enum.Font.Gotham
     l.TextSize = 9
     l.ZIndex = 12
-    
     local b = Instance.new("TextButton", f)
     b.Size = UDim2.new(1, -16, 0, 28)
     b.Position = UDim2.new(0, 8, 0, 26)
     b.BackgroundColor3 = t.Btn
+    b.BackgroundTransparency = 0
     b.BorderSizePixel = 0
     b.Text = opts[defIdx]
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextTransparency = 0
     b.Font = Enum.Font.Gotham
     b.TextSize = 10
     b.AutoButtonColor = false
     b.ZIndex = 12
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    
-    registerFade(f)
-    
     local idx = defIdx
     b.MouseButton1Click:Connect(function()
         idx = idx % #opts + 1
@@ -593,37 +600,35 @@ local function slider(parent, text, y, min, max, def, cb)
     f.Size = UDim2.new(1, -16, 0, 52)
     f.Position = UDim2.new(0, 8, 0, y)
     f.BackgroundColor3 = t.Elem
+    f.BackgroundTransparency = 0
     f.BorderSizePixel = 0
     f.ZIndex = 11
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
-    
     local l = Instance.new("TextLabel", f)
     l.Size = UDim2.new(1, -16, 0, 18)
     l.Position = UDim2.new(0, 8, 0, 4)
     l.BackgroundTransparency = 1
     l.Text = text .. ": " .. string.format("%.0f", def)
     l.TextColor3 = t.Text
+    l.TextTransparency = 0
     l.Font = Enum.Font.Gotham
     l.TextSize = 9
     l.ZIndex = 12
-    
     local bar = Instance.new("TextButton", f)
     bar.Size = UDim2.new(1, -16, 0, 18)
     bar.Position = UDim2.new(0, 8, 0, 28)
     bar.BackgroundColor3 = t.Btn
+    bar.BackgroundTransparency = 0
     bar.BorderSizePixel = 0
     bar.Text = "" bar.AutoButtonColor = false bar.ZIndex = 12
     Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 9)
-    
     local fill = Instance.new("Frame", bar)
     fill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
     fill.BackgroundColor3 = t.Accent
+    fill.BackgroundTransparency = 0
     fill.BorderSizePixel = 0
     fill.ZIndex = 13
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 9)
-    
-    registerFade(f)
-    
     local val, drag = def, false
     local function upd()
         local mp = UserInputService:GetMouseLocation()
@@ -647,36 +652,35 @@ local function createBindButton(parent, text, y, bindValue, cb)
     f.Size = UDim2.new(1, -16, 0, 36)
     f.Position = UDim2.new(0, 8, 0, y)
     f.BackgroundColor3 = t.Elem
+    f.BackgroundTransparency = 0
     f.BorderSizePixel = 0
     f.ZIndex = 11
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
-    
     local l = Instance.new("TextLabel", f)
     l.Size = UDim2.new(0.4, 0, 1, 0)
     l.Position = UDim2.new(0, 10, 0, 0)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = t.Text
+    l.TextTransparency = 0
     l.Font = Enum.Font.Gotham
     l.TextSize = 10
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.ZIndex = 12
-    
     local b = Instance.new("TextButton", f)
     b.Size = UDim2.new(0, 80, 0, 26)
     b.Position = UDim2.new(1, -86, 0.5, -13)
     b.BorderSizePixel = 0
     b.BackgroundColor3 = t.Btn
+    b.BackgroundTransparency = 0
     b.Text = bindValue
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextTransparency = 0
     b.Font = Enum.Font.GothamBold
     b.TextSize = 9
     b.AutoButtonColor = false
     b.ZIndex = 12
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    
-    registerFade(f)
-    
     b.MouseButton1Click:Connect(function()
         listeningForBind = true
         settingBind = function(key)
@@ -688,24 +692,18 @@ local function createBindButton(parent, text, y, bindValue, cb)
         end
         b.Text = "..."
     end)
-    
     bindButtons[text] = b
     return y + 39
 end
 
 local function updateBindButton(text, key)
-    if bindButtons[text] then
-        bindButtons[text].Text = key
-    end
+    if bindButtons[text] then bindButtons[text].Text = key end
 end
 
 -- ESP Tab
 local y = 6 local inner = TabContents["ESP"].inner
 y = section(inner, "ESP", y)
-y = toggle(inner, "Enabled", y, Settings.ESP.Enabled, function(s)
-    Settings.ESP.Enabled = s
-    rebuildESP()
-end)
+y = toggle(inner, "Enabled", y, Settings.ESP.Enabled, function(s) Settings.ESP.Enabled = s rebuildESP() end, "ESP")
 y = dropdown(inner, "Box Type", y, {"Corner", "Full", "Corner+Full"}, 1, function(o) Settings.ESP.BoxType = o end)
 y = dropdown(inner, "Color", y, {"White", "Red", "Green", "Blue", "Purple", "Yellow", "Cyan", "Rainbow"}, 1, function(o) Settings.ESP.Color = o end)
 y = slider(inner, "Thickness", y, 1, 5, Settings.ESP.Thickness, function(v) Settings.ESP.Thickness = v end)
@@ -714,10 +712,7 @@ y = toggle(inner, "Name", y, Settings.ESP.Name, function(s) Settings.ESP.Name = 
 y = toggle(inner, "Distance", y, Settings.ESP.Distance, function(s) Settings.ESP.Distance = s end)
 y = toggle(inner, "HP Bar", y, Settings.ESP.HealthBar, function(s) Settings.ESP.HealthBar = s end)
 y = toggle(inner, "Health Text", y, Settings.ESP.HealthText, function(s) Settings.ESP.HealthText = s end)
-y = createBindButton(inner, "ESP Bind", y, Settings.ESP.Bind, function(key)
-    Settings.ESP.Bind = key
-    updateBindButton("ESP", key)
-end)
+y = createBindButton(inner, "ESP Bind", y, Settings.ESP.Bind, function(key) Settings.ESP.Bind = key updateBindButton("ESP", key) end)
 TabContents["ESP"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- Chams Tab
@@ -731,35 +726,16 @@ y = toggle(inner, "Enabled", y, Settings.Chams.Enabled, function(s)
             if hl then hl.Enabled = s elseif s then applyChams(p) end
         end
     end
-end)
-y = slider(inner, "Fill Trans", y, 0, 1, Settings.Chams.FillTrans, function(v)
-    Settings.Chams.FillTrans = v
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local hl = p.Character:FindFirstChild("CH")
-            if hl then hl.FillTransparency = v end
-        end
-    end
-end)
-y = slider(inner, "Outline Trans", y, 0, 1, Settings.Chams.OutlineTrans, function(v)
-    Settings.Chams.OutlineTrans = v
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local hl = p.Character:FindFirstChild("CH")
-            if hl then hl.OutlineTransparency = v end
-        end
-    end
-end)
-y = createBindButton(inner, "Chams Bind", y, Settings.Chams.Bind, function(key)
-    Settings.Chams.Bind = key
-    updateBindButton("Chams", key)
-end)
+end, "Chams")
+y = slider(inner, "Fill Trans", y, 0, 1, Settings.Chams.FillTrans, function(v) Settings.Chams.FillTrans = v for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then local hl = p.Character:FindFirstChild("CH") if hl then hl.FillTransparency = v end end end end)
+y = slider(inner, "Outline Trans", y, 0, 1, Settings.Chams.OutlineTrans, function(v) Settings.Chams.OutlineTrans = v for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then local hl = p.Character:FindFirstChild("CH") if hl then hl.OutlineTransparency = v end end end end)
+y = createBindButton(inner, "Chams Bind", y, Settings.Chams.Bind, function(key) Settings.Chams.Bind = key updateBindButton("Chams", key) end)
 TabContents["Chams"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- Aimbot Tab
 y = 6 inner = TabContents["Aimbot"].inner
 y = section(inner, "AIMBOT", y)
-y = toggle(inner, "Enabled", y, Settings.Aimbot.Enabled, function(s) Settings.Aimbot.Enabled = s end)
+y = toggle(inner, "Enabled", y, Settings.Aimbot.Enabled, function(s) Settings.Aimbot.Enabled = s end, "Aimbot")
 y = dropdown(inner, "Target", y, {"Head", "HumanoidRootPart", "UpperTorso"}, 1, function(o) Settings.Aimbot.TargetPart = o end)
 y = toggle(inner, "Unlock FOV", y, Settings.Aimbot.UnlockFOV, function(s) Settings.Aimbot.UnlockFOV = s end)
 y = toggle(inner, "Silent Aim", y, Settings.Aimbot.SilentAim, function(s) Settings.Aimbot.SilentAim = s end)
@@ -771,16 +747,13 @@ y = toggle(inner, "FOV Visible", y, Settings.Aimbot.FOVVisible, function(s) Sett
 y = toggle(inner, "Visible Check", y, Settings.Aimbot.VisibleCheck, function(s) Settings.Aimbot.VisibleCheck = s end)
 y = toggle(inner, "Trigger Bot", y, Settings.Aimbot.TriggerBot, function(s) Settings.Aimbot.TriggerBot = s end)
 y = toggle(inner, "Target Lock", y, Settings.Aimbot.TargetLock, function(s) Settings.Aimbot.TargetLock = s end)
-y = createBindButton(inner, "Aimbot Bind", y, Settings.Aimbot.Bind, function(key)
-    Settings.Aimbot.Bind = key
-    updateBindButton("Aimbot", key)
-end)
+y = createBindButton(inner, "Aimbot Bind", y, Settings.Aimbot.Bind, function(key) Settings.Aimbot.Bind = key updateBindButton("Aimbot", key) end)
 TabContents["Aimbot"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- KillAura Tab
 y = 6 inner = TabContents["KillAura"].inner
 y = section(inner, "KILL AURA", y)
-y = toggle(inner, "Enabled", y, Settings.KillAura.Enabled, function(s) Settings.KillAura.Enabled = s end)
+y = toggle(inner, "Enabled", y, Settings.KillAura.Enabled, function(s) Settings.KillAura.Enabled = s end, "KillAura")
 y = slider(inner, "Range", y, 10, 200, Settings.KillAura.Range, function(v) Settings.KillAura.Range = v end)
 y = dropdown(inner, "Priority", y, {"Distance", "Health", "Random"}, 1, function(o) Settings.KillAura.TargetPriority = o end)
 y = toggle(inner, "Teleport", y, Settings.KillAura.Teleport, function(s) Settings.KillAura.Teleport = s end)
@@ -789,24 +762,15 @@ y = slider(inner, "Attack Delay", y, 0, 2, Settings.KillAura.AttackDelay, functi
 y = toggle(inner, "Spin Around", y, Settings.KillAura.Spin, function(s) Settings.KillAura.Spin = s end)
 y = slider(inner, "Spin Speed", y, 1, 20, Settings.KillAura.SpinSpeed, function(v) Settings.KillAura.SpinSpeed = v end)
 y = slider(inner, "Spin Dist", y, 2, 15, Settings.KillAura.SpinDistance, function(v) Settings.KillAura.SpinDistance = v end)
-y = createBindButton(inner, "KillAura Bind", y, Settings.KillAura.Bind, function(key)
-    Settings.KillAura.Bind = key
-    updateBindButton("KillAura", key)
-end)
+y = createBindButton(inner, "KillAura Bind", y, Settings.KillAura.Bind, function(key) Settings.KillAura.Bind = key updateBindButton("KillAura", key) end)
 TabContents["KillAura"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- AutoClick Tab
 y = 6 inner = TabContents["AutoClick"].inner
 y = section(inner, "AUTO CLICKER", y)
-y = toggle(inner, "Enabled", y, Settings.AutoClicker.Enabled, function(s)
-    Settings.AutoClicker.Enabled = s
-    if s then startClicker() else stopClicker() end
-end)
+y = toggle(inner, "Enabled", y, Settings.AutoClicker.Enabled, function(s) Settings.AutoClicker.Enabled = s if s then startClicker() else stopClicker() end end, "AutoClick")
 y = slider(inner, "CPS", y, 1, 30, Settings.AutoClicker.CPS, function(v) Settings.AutoClicker.CPS = v end)
-y = createBindButton(inner, "AutoClick Bind", y, Settings.AutoClicker.Bind, function(key)
-    Settings.AutoClicker.Bind = key
-    updateBindButton("AutoClick", key)
-end)
+y = createBindButton(inner, "AutoClick Bind", y, Settings.AutoClicker.Bind, function(key) Settings.AutoClicker.Bind = key updateBindButton("AutoClick", key) end)
 TabContents["AutoClick"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- Misc Tab
@@ -847,35 +811,21 @@ y = dropdown(inner, "Theme", y, {"Red", "Dark", "Blue", "Green", "Purple", "Cyan
 end)
 y = slider(inner, "UI Opacity", y, 5, 100, Settings.Misc.UIOpacity, function(v)
     Settings.Misc.UIOpacity = v
-    if mainFrame.Visible then
+    if mainFrame.Visible and not animating then
         mainFrame.BackgroundTransparency = 1 - (v / 100)
     end
+    saveSettings()
 end)
 TabContents["Misc"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 -- Binds Tab
 y = 6 inner = TabContents["Binds"].inner
 y = section(inner, "BINDS", y)
-y = createBindButton(inner, "ESP", y, Settings.ESP.Bind, function(key)
-    Settings.ESP.Bind = key
-    updateBindButton("ESP Bind", key)
-end)
-y = createBindButton(inner, "Chams", y, Settings.Chams.Bind, function(key)
-    Settings.Chams.Bind = key
-    updateBindButton("Chams Bind", key)
-end)
-y = createBindButton(inner, "Aimbot", y, Settings.Aimbot.Bind, function(key)
-    Settings.Aimbot.Bind = key
-    updateBindButton("Aimbot Bind", key)
-end)
-y = createBindButton(inner, "KillAura", y, Settings.KillAura.Bind, function(key)
-    Settings.KillAura.Bind = key
-    updateBindButton("KillAura Bind", key)
-end)
-y = createBindButton(inner, "AutoClick", y, Settings.AutoClicker.Bind, function(key)
-    Settings.AutoClicker.Bind = key
-    updateBindButton("AutoClick Bind", key)
-end)
+y = createBindButton(inner, "ESP", y, Settings.ESP.Bind, function(key) Settings.ESP.Bind = key updateBindButton("ESP Bind", key) end)
+y = createBindButton(inner, "Chams", y, Settings.Chams.Bind, function(key) Settings.Chams.Bind = key updateBindButton("Chams Bind", key) end)
+y = createBindButton(inner, "Aimbot", y, Settings.Aimbot.Bind, function(key) Settings.Aimbot.Bind = key updateBindButton("Aimbot Bind", key) end)
+y = createBindButton(inner, "KillAura", y, Settings.KillAura.Bind, function(key) Settings.KillAura.Bind = key updateBindButton("KillAura Bind", key) end)
+y = createBindButton(inner, "AutoClick", y, Settings.AutoClicker.Bind, function(key) Settings.AutoClicker.Bind = key updateBindButton("AutoClick Bind", key) end)
 TabContents["Binds"].scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
 
 local wm = Instance.new("TextLabel", CoreGui)
@@ -911,14 +861,8 @@ function applyChams(player)
     local c = player.Character
     local old = c:FindFirstChild("CH")
     if old then old:Destroy() end
-    
-    if chamConnections[player] then
-        chamConnections[player]:Disconnect()
-        chamConnections[player] = nil
-    end
-    
+    if chamConnections[player] then chamConnections[player]:Disconnect() chamConnections[player] = nil end
     if not Settings.Chams.Enabled then return end
-    
     local hl = Instance.new("Highlight")
     hl.Name = "CH"
     hl.Enabled = true
@@ -926,13 +870,9 @@ function applyChams(player)
     hl.OutlineTransparency = Settings.Chams.OutlineTrans
     hl.Adornee = c
     hl.Parent = c
-    
     chamConnections[player] = RunService.RenderStepped:Connect(function()
         if not hl or not hl.Parent then
-            if chamConnections[player] then
-                chamConnections[player]:Disconnect()
-                chamConnections[player] = nil
-            end
+            if chamConnections[player] then chamConnections[player]:Disconnect() chamConnections[player] = nil end
             return
         end
         local phase = (math.sin(tick() * 2) + 1) / 2
@@ -953,7 +893,6 @@ function createESP(player)
         if ESPData[player].hf then ESPData[player].hf:Remove() end
     end
     ESPData[player] = {}
-    
     local lines = {} for i = 1, 8 do local l = Drawing.new("Line") l.Visible = false lines[i] = l end
     local nt = Drawing.new("Text") nt.Visible = false nt.Center = true nt.Size = 14 nt.Font = 3 nt.Outline = true
     local dt = Drawing.new("Text") dt.Visible = false dt.Center = true dt.Size = 12 dt.Font = 3 dt.Outline = true
@@ -961,7 +900,6 @@ function createESP(player)
     local hbg = Drawing.new("Square") hbg.Visible = false hbg.Filled = true hbg.Color = Color3.fromRGB(15,15,15) hbg.Transparency = 0.4
     local hf = Drawing.new("Square") hf.Visible = false hf.Filled = true
     ESPData[player].lines = lines ESPData[player].nt = nt ESPData[player].dt = dt ESPData[player].ht = ht ESPData[player].hbg = hbg ESPData[player].hf = hf
-    
     ESPData[player].conn = RunService.RenderStepped:Connect(function()
         local c = player.Character
         if not c or not isAlive(player) or not Settings.ESP.Enabled then
@@ -969,24 +907,19 @@ function createESP(player)
             nt.Visible = false dt.Visible = false ht.Visible = false hbg.Visible = false hf.Visible = false
             return
         end
-        
         local h = c:FindFirstChild("Head") local r = c:FindFirstChild("HumanoidRootPart")
         if not h or not r then return end
-        
         local hp = h.Position + Vector3.new(0, 0.5, 0) local rp = r.Position - Vector3.new(0, 2, 0)
         local cp = r.Position + Vector3.new(0, math.abs(h.Position.Y - r.Position.Y), 0)
         local ts = Camera:WorldToViewportPoint(hp) local bs = Camera:WorldToViewportPoint(rp)
         if ts.Z <= 0 then for _, l in pairs(lines) do l.Visible = false end return end
-        
         local dist = (Camera.CFrame.Position - cp).Magnitude
         local bw = math.clamp((2.5 / dist) * 500, 20, 200)
         local cs = Camera:WorldToViewportPoint(cp)
         local lx, rx = cs.X - bw/2, cs.X + bw/2
         local ty, by = ts.Y, bs.Y
         local color = Settings.ESP.Color == "Rainbow" and Color3.fromHSV(tick()%5/5, 1, 1) or (Colors[Settings.ESP.Color] or Colors.White)
-        
         for i = 1, 8 do lines[i].Visible = false end
-        
         if Settings.ESP.BoxType == "Full" or Settings.ESP.BoxType == "Corner+Full" then
             for i = 1, 4 do lines[i].Visible = true lines[i].Color = color lines[i].Thickness = Settings.ESP.Thickness lines[i].Transparency = Settings.ESP.Transparency end
             lines[1].From = Vector2.new(lx, ty) lines[1].To = Vector2.new(rx, ty)
@@ -994,7 +927,6 @@ function createESP(player)
             lines[3].From = Vector2.new(rx, by) lines[3].To = Vector2.new(lx, by)
             lines[4].From = Vector2.new(lx, by) lines[4].To = Vector2.new(lx, ty)
         end
-        
         if Settings.ESP.BoxType == "Corner" or Settings.ESP.BoxType == "Corner+Full" then
             local cs2 = math.min(bw * 0.3, 30)
             for i = 5, 8 do lines[i].Visible = true lines[i].Color = color lines[i].Thickness = Settings.ESP.Thickness + 1 lines[i].Transparency = Settings.ESP.Transparency end
@@ -1003,10 +935,8 @@ function createESP(player)
             lines[7].From = Vector2.new(rx, by) lines[7].To = Vector2.new(rx-cs2, by)
             lines[8].From = Vector2.new(lx, by) lines[8].To = Vector2.new(lx+cs2, by)
         end
-        
         if Settings.ESP.Name then nt.Visible = true nt.Text = player.Name nt.Position = Vector2.new(cs.X, ty - 20) nt.Color = Color3.fromRGB(255,255,255) else nt.Visible = false end
         if Settings.ESP.Distance then dt.Visible = true dt.Text = math.floor(dist).."m" dt.Position = Vector2.new(cs.X, by + 5) dt.Color = Color3.fromRGB(255,255,255) else dt.Visible = false end
-        
         local hum = c:FindFirstChildOfClass("Humanoid")
         if hum then
             local health = hum.Health / hum.MaxHealth
@@ -1016,7 +946,6 @@ function createESP(player)
                 ht.Position = Vector2.new(cs.X, by + 18)
                 ht.Color = Color3.fromHSV(health * 0.33, 1, 1)
             else ht.Visible = false end
-            
             if Settings.ESP.HealthBar then
                 local bh = by - ty local bx = lx - 7
                 hbg.Visible = true hbg.Size = Vector2.new(3, bh) hbg.Position = Vector2.new(bx, ty)
@@ -1035,7 +964,6 @@ local function getTarget()
         end
         lockedTarget = nil
     end
-    
     local best, bestDist = nil, Settings.Aimbot.FOV
     for _, p in pairs(Players:GetPlayers()) do
         if p == LocalPlayer or not isAlive(p) then continue end
@@ -1055,22 +983,17 @@ local function killAura()
     local c = LocalPlayer.Character if not c then return end
     local r = c:FindFirstChild("HumanoidRootPart") local h = c:FindFirstChildOfClass("Humanoid")
     if not r or not h or h.Health <= 0 then return end
-    
     local targets = {}
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and isAlive(p) then
             local tr = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
             if tr then
                 local d = (r.Position - tr.Position).Magnitude
-                if d <= Settings.KillAura.Range then
-                    table.insert(targets, {player = p, distance = d})
-                end
+                if d <= Settings.KillAura.Range then table.insert(targets, {player = p, distance = d}) end
             end
         end
     end
-    
     if #targets == 0 then return end
-    
     if Settings.KillAura.TargetPriority == "Distance" then
         table.sort(targets, function(a, b) return a.distance < b.distance end)
     elseif Settings.KillAura.TargetPriority == "Health" then
@@ -1083,7 +1006,6 @@ local function killAura()
         local rand = math.random(1, #targets)
         targets[1] = targets[rand]
     end
-    
     local bestP = targets[1].player
     if bestP and bestP.Character then
         local tp = bestP.Character:FindFirstChild("Head") or bestP.Character:FindFirstChild("HumanoidRootPart")
@@ -1096,13 +1018,8 @@ local function killAura()
             elseif Settings.KillAura.Teleport then
                 r.CFrame = CFrame.new(tp.Position + Vector3.new(0, Settings.KillAura.TeleportHeight, 0))
             end
-            
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, tp.Position)
-            
-            if tick() - lastAttack >= Settings.KillAura.AttackDelay then
-                safeClick()
-                lastAttack = tick()
-            end
+            if tick() - lastAttack >= Settings.KillAura.AttackDelay then safeClick() lastAttack = tick() end
         end
     end
 end
@@ -1137,36 +1054,27 @@ RunService.RenderStepped:Connect(function()
         if c then
             local h = c:FindFirstChildOfClass("Humanoid")
             if h then
-                if h.FloorMaterial ~= Enum.Material.Air then
-                    h.Jump = true
-                end
+                if h.FloorMaterial ~= Enum.Material.Air then h.Jump = true end
                 local baseSpeed = Settings.Misc.Speed and Settings.Misc.SpeedVal or 16
                 h.WalkSpeed = baseSpeed * 1.25
             end
         end
     else
-        if bunnyhopEnabled then
-            bunnyhopEnabled = false
-            updSpeed()
-        end
+        if bunnyhopEnabled then bunnyhopEnabled = false updSpeed() end
     end
-    
     if Settings.Misc.Spinbot then
         local c = LocalPlayer.Character
         if c and c:FindFirstChild("HumanoidRootPart") then
             c.HumanoidRootPart.CFrame = c.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(15), 0)
         end
     end
-    
     fovCircle.Visible = Settings.Aimbot.Enabled and not Settings.Aimbot.UnlockFOV and Settings.Aimbot.FOVVisible
     if fovCircle.Visible then
         fovCircle.Radius = Settings.Aimbot.FOV
         fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
         fovCircle.Color = Colors[Settings.Aimbot.FOVColor] or Colors.Red
     end
-    
     killAura()
-    
     if Settings.Aimbot.Enabled then
         local bt, bd = getTarget()
         if bt then
@@ -1180,7 +1088,6 @@ RunService.RenderStepped:Connect(function()
             if Settings.Aimbot.TriggerBot and bd < 50 then safeClick() end
         end
     end
-    
     if tick() % 10 < 0.03 then cleanESP() end
 end)
 
@@ -1193,18 +1100,13 @@ function startFly()
     flyConn = RunService.RenderStepped:Connect(function()
         if not Settings.Misc.Fly then stopFly() return end
         local vel = Vector3.zero
-        
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel += Camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then vel -= Camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then vel -= Camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then vel += Camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vel += Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vel -= Vector3.new(0, 1, 0) end
-        
-        if vel.Magnitude > 0 then
-            vel = vel.Unit * Settings.Misc.FlySpeed
-        end
-        
+        if vel.Magnitude > 0 then vel = vel.Unit * Settings.Misc.FlySpeed end
         r.Velocity = vel
     end)
 end
@@ -1229,11 +1131,7 @@ function updSpeed()
         local h = c:FindFirstChildOfClass("Humanoid")
         if h then
             local baseSpeed = Settings.Misc.Speed and Settings.Misc.SpeedVal or 16
-            if Settings.Misc.AutoBunnyhop then
-                h.WalkSpeed = baseSpeed * 1.25
-            else
-                h.WalkSpeed = baseSpeed
-            end
+            if Settings.Misc.AutoBunnyhop then h.WalkSpeed = baseSpeed * 1.25 else h.WalkSpeed = baseSpeed end
         end
     end
 end
@@ -1259,21 +1157,12 @@ Players.PlayerRemoving:Connect(function(p)
         if ESPData[p].lines then for _, l in pairs(ESPData[p].lines) do l:Remove() end end
         ESPData[p] = nil
     end
-    if chamConnections[p] then
-        chamConnections[p]:Disconnect()
-        chamConnections[p] = nil
-    end
+    if chamConnections[p] then chamConnections[p]:Disconnect() chamConnections[p] = nil end
 end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    
-    if listeningForBind and settingBind then
-        local keyName = input.KeyCode.Name
-        settingBind(keyName)
-        return
-    end
-    
+    if listeningForBind and settingBind then settingBind(input.KeyCode.Name) return end
     if input.KeyCode == Enum.KeyCode.V then
         if animating then return end
         if mainFrame.Visible then
@@ -1281,22 +1170,20 @@ UserInputService.InputBegan:Connect(function(input, gp)
             Settings.UI.LastPosition = mainFrame.Position
             Settings.UI.LastSize = mainFrame.Size
             saveSettings()
-            fadeOut(function()
-                mainFrame.Visible = false
-            end)
+            animateClose()
         else
-            mainFrame.Visible = true
             Settings.UI.Hidden = false
-            fadeIn()
+            animateOpen()
         end
     end
-    
     if input.KeyCode.Name == Settings.ESP.Bind and input.KeyCode.Name ~= "None" then
         Settings.ESP.Enabled = not Settings.ESP.Enabled
+        updateToggleVisual("ESP", Settings.ESP.Enabled)
         rebuildESP()
     end
     if input.KeyCode.Name == Settings.Chams.Bind and input.KeyCode.Name ~= "None" then
         Settings.Chams.Enabled = not Settings.Chams.Enabled
+        updateToggleVisual("Chams", Settings.Chams.Enabled)
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
                 local hl = p.Character:FindFirstChild("CH")
@@ -1306,12 +1193,15 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
     if input.KeyCode.Name == Settings.Aimbot.Bind and input.KeyCode.Name ~= "None" then
         Settings.Aimbot.Enabled = not Settings.Aimbot.Enabled
+        updateToggleVisual("Aimbot", Settings.Aimbot.Enabled)
     end
     if input.KeyCode.Name == Settings.KillAura.Bind and input.KeyCode.Name ~= "None" then
         Settings.KillAura.Enabled = not Settings.KillAura.Enabled
+        updateToggleVisual("KillAura", Settings.KillAura.Enabled)
     end
     if input.KeyCode.Name == Settings.AutoClicker.Bind and input.KeyCode.Name ~= "None" then
         Settings.AutoClicker.Enabled = not Settings.AutoClicker.Enabled
+        updateToggleVisual("AutoClick", Settings.AutoClicker.Enabled)
         if Settings.AutoClicker.Enabled then startClicker() else stopClicker() end
     end
 end)
@@ -1333,6 +1223,3 @@ if LocalPlayer.Character then
         end
     end
 end
-
--- Плавное появление при старте
-fadeIn()
